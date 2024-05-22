@@ -14,7 +14,7 @@ type authApi struct {
 	authService domain.AuthService
 }
 
-func NewAuth(app *fiber.App,
+func NewAuth(app *fiber.App, authHandler fiber.Handler,
 	authService domain.AuthService) {
 
 	ha := authApi{
@@ -22,6 +22,7 @@ func NewAuth(app *fiber.App,
 	}
 
 	app.Post("/v1/authenticate", ha.authenticate)
+	app.Post("/v1/authenticate/validate", authHandler, ha.authenticateValidate)
 }
 
 func (a authApi) authenticate(ctx *fiber.Ctx) error {
@@ -42,4 +43,12 @@ func (a authApi) authenticate(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).JSON(dto.NewResponseData[dto.AuthRes](res))
+}
+
+func (a authApi) authenticateValidate(ctx *fiber.Ctx) error {
+	userLocal := ctx.Locals("x-user")
+	if userLocal == nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(dto.NewResponseMessage("Sorry, the token you entered is invalid. Please check your token and try again or contact customer support for further assistance. Thank you."))
+	}
+	return ctx.Status(http.StatusOK).JSON(dto.NewResponseData[dto.UserData](userLocal.(dto.UserData)))
 }

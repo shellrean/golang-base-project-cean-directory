@@ -40,6 +40,7 @@ func (a authService) Authenticate(ctx context.Context, req dto.AuthReq) (dto.Aut
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"id":    user.Id,
+			"name":  user.Name,
 			"email": user.Email,
 			"exp":   time.Now().Add(time.Hour * 24).Unix(),
 		})
@@ -52,4 +53,24 @@ func (a authService) Authenticate(ctx context.Context, req dto.AuthReq) (dto.Aut
 	return dto.AuthRes{
 		AccessToken: tokenString,
 	}, nil
+}
+
+func (a authService) Validate(ctx context.Context, tokenString string) (dto.UserData, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(a.cnf.Secret.Jwt), nil
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		return dto.UserData{}, err
+	}
+	if token.Valid {
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			return dto.UserData{
+				Id:    claims["id"].(string),
+				Name:  claims["name"].(string),
+				Email: claims["email"].(string),
+			}, nil
+		}
+	}
+	return dto.UserData{}, domain.ErrInvalidCredential
 }

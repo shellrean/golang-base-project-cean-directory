@@ -5,6 +5,7 @@ import (
 	"github.com/shellrean/golang-base-project-cean-directory/internal/api"
 	"github.com/shellrean/golang-base-project-cean-directory/internal/config"
 	"github.com/shellrean/golang-base-project-cean-directory/internal/connection"
+	"github.com/shellrean/golang-base-project-cean-directory/internal/middleware"
 	"github.com/shellrean/golang-base-project-cean-directory/internal/repository"
 	"github.com/shellrean/golang-base-project-cean-directory/internal/service"
 )
@@ -17,9 +18,11 @@ func main() {
 	userRepository := repository.NewUser(dbConnection)
 	authService := service.NewAuth(cnf, userRepository)
 
+	authHandler := middleware.Authenticate(authService)
+
 	app := fiber.New()
 
-	api.NewAuth(app, authService)
+	api.NewAuth(app, authHandler, authService)
 
 	_ = app.Listen(cnf.Server.Host + ":" + cnf.Server.Port)
 }
